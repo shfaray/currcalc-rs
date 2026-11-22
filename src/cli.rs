@@ -209,6 +209,12 @@ fn print_conversion(cli: &Cli, amount: f64, rate: &Rate) -> Result<(), AppError>
 }
 
 fn list(cli: &Cli, query: Option<&str>, all: bool) -> Result<(), AppError> {
+    if cli.date.is_some() {
+        return Err(AppError::Usage(
+            "`--date` applies to conversions, not to `list`".to_string(),
+        ));
+    }
+
     let cache = open_cache();
     let cached = if cli.no_cache {
         None

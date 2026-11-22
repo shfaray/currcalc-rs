@@ -99,7 +99,8 @@ array of objects with `code`, `name`, `symbol` and `type`.
 | `--no-cache` | Ignore cached data and fetch a fresh rate |
 | `--offline` | Never touch the network, use cached data only |
 
-Options may be placed before or after the currencies.
+Options may be placed before or after the currencies. `--date` belongs to
+conversions; `list` rejects it instead of ignoring it.
 
 Historical lookups work for any date the API covers for that pair. A date
 outside the coverage returns an error. For example,

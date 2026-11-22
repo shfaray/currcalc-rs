@@ -379,6 +379,17 @@ fn missing_currency_is_a_usage_error() {
 }
 
 #[test]
+fn date_flag_is_rejected_for_list() {
+    Fixture::new()
+        .offline()
+        .args(["list", "--date", "2024-05-15"])
+        .assert()
+        .failure()
+        .code(2)
+        .stderr(predicate::str::contains("`--date` applies to conversions"));
+}
+
+#[test]
 fn malformed_invocations_exit_with_two() {
     for args in [
         vec!["eur", "usd", "1.2.3"],
