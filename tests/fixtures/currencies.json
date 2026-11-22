@@ -4,71 +4,55 @@
     "iso_numeric": null,
     "name": "Bitcoin",
     "symbol": "₿",
-    "type": "crypto",
-    "start_date": "2010-07-18",
-    "end_date": "2026-11-21"
+    "type": "crypto"
   },
   {
     "iso_code": "EUR",
     "iso_numeric": "978",
     "name": "Euro",
     "symbol": "€",
-    "type": "currency",
-    "start_date": "1999-01-01",
-    "end_date": "2026-11-22"
+    "type": "currency"
   },
   {
     "iso_code": "GBP",
     "iso_numeric": "826",
     "name": "British Pound",
     "symbol": "£",
-    "type": "currency",
-    "start_date": "1949-12-21",
-    "end_date": "2026-11-22"
+    "type": "currency"
   },
   {
     "iso_code": "JPY",
     "iso_numeric": "392",
     "name": "Japanese Yen",
     "symbol": "¥",
-    "type": "currency",
-    "start_date": "1969-12-01",
-    "end_date": "2026-11-22"
+    "type": "currency"
   },
   {
     "iso_code": "RUB",
     "iso_numeric": "643",
     "name": "Russian Ruble",
     "symbol": "₽",
-    "type": "currency",
-    "start_date": "1998-01-02",
-    "end_date": "2026-11-22"
+    "type": "currency"
   },
   {
     "iso_code": "USD",
     "iso_numeric": "840",
     "name": "United States Dollar",
     "symbol": "$",
-    "type": "currency",
-    "start_date": "1948-06-21",
-    "end_date": "2026-11-22"
+    "type": "currency"
   },
   {
     "iso_code": "USDT",
     "iso_numeric": null,
     "name": "Tether",
     "symbol": "USDT",
-    "type": "crypto",
-    "start_date": "2014-10-06",
-    "end_date": "2026-11-21"
+    "type": "crypto"
   },
   {
     "iso_code": "XAU",
     "iso_numeric": "959",
     "name": "Gold (Troy Ounce)",
     "symbol": "oz t",
-    "type": "metal",
-    "start_date": "1999-01-05",
-    "end_date": "2026-11-22"
+    "type": "metal"
   }
 ]
