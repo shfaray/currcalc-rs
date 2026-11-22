@@ -45,6 +45,49 @@ impl Fixture {
         command.arg("--offline");
         command
     }
+
+    /// Run against a host that refuses connections, with proxies cleared so
+    /// the failure is the one the test is about.
+    fn unreachable_api(&self) -> Command {
+        let mut command = self.command();
+        for var in [
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "ALL_PROXY",
+            "NO_PROXY",
+            "http_proxy",
+            "https_proxy",
+            "all_proxy",
+            "no_proxy",
+        ] {
+            command.env_remove(var);
+        }
+        command.env("CURRCALC_API_BASE", "http://127.0.0.1:1");
+        command
+    }
+
+    fn make_rate_stale(&self) {
+        let stale = now_secs() - 3 * 60 * 60;
+        std::fs::write(
+            self.cache_dir.join("rate_eur_usd.json"),
+            format!(
+                r#"{{"fetched_at":{stale},"data":{{"date":"2023-07-14","base":"EUR","quote":"USD","rate":1.1193}}}}"#
+            ),
+        )
+        .unwrap();
+    }
+
+    fn make_currencies_stale(&self) {
+        let stale = now_secs() - 8 * 24 * 60 * 60;
+        std::fs::write(
+            self.cache_dir.join("currencies.json"),
+            format!(
+                r#"{{"fetched_at":{stale},"data":{}}}"#,
+                serde_json::to_string(&currencies()).unwrap()
+            ),
+        )
+        .unwrap();
+    }
 }
 
 fn rate(date: &str, value: f64) -> Rate {
@@ -265,14 +308,7 @@ fn corrupt_cache_entry_is_ignored() {
 #[test]
 fn stale_entry_is_used_with_a_warning_when_offline() {
     let fixture = Fixture::new();
-    let stale = now_secs() - 3 * 60 * 60;
-    std::fs::write(
-        fixture.cache_dir.join("rate_eur_usd.json"),
-        format!(
-            r#"{{"fetched_at":{stale},"data":{{"date":"2023-07-14","base":"EUR","quote":"USD","rate":1.1193}}}}"#
-        ),
-    )
-    .unwrap();
+    fixture.make_rate_stale();
 
     fixture
         .offline()
@@ -283,6 +319,52 @@ fn stale_entry_is_used_with_a_warning_when_offline() {
         .stderr(predicate::str::contains(
             "using cached rate from 2023-07-14",
         ));
+}
+
+#[test]
+fn network_failure_falls_back_to_stale_cache() {
+    let fixture = Fixture::new();
+    fixture.make_rate_stale();
+
+    fixture
+        .unreachable_api()
+        .args(["eur", "usd", "137.42"])
+        .assert()
+        .success()
+        .stdout("153.81\n")
+        .stderr(predicate::str::contains("network error"))
+        .stderr(predicate::str::contains(
+            "using cached rate from 2023-07-14",
+        ));
+}
+
+#[test]
+fn network_failure_without_cache_fails() {
+    let fixture = Fixture::new();
+    std::fs::remove_file(fixture.cache_dir.join("rate_eur_usd.json")).unwrap();
+
+    fixture
+        .unreachable_api()
+        .args(["eur", "usd", "137.42"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains("network error"))
+        .stdout(predicate::str::is_empty());
+}
+
+#[test]
+fn list_network_failure_falls_back_to_cache() {
+    let fixture = Fixture::new();
+    fixture.make_currencies_stale();
+
+    fixture
+        .unreachable_api()
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("EUR   Euro"))
+        .stderr(predicate::str::contains("using currency list cached"));
 }
 
 #[test]

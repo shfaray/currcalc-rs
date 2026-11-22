@@ -137,7 +137,10 @@ cargo test -- --ignored
 ```
 
 The last command hits the live API. Everything else runs offline: the CLI
-tests seed a temporary cache and pass `--offline`.
+tests seed a temporary cache and pass `--offline`. A few tests set
+`CURRCALC_API_BASE` to a closed port to check the fallback to cached data
+when the network fails; the same variable points the binary at another API
+host.
 
 The agent skill in `skills/currcalc` explains the command surface to coding
 agents and installs with `npx skills add shfaray/currcalc-rs`.

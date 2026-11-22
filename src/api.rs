@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 pub const API_BASE: &str = "https://api.frankfurter.dev/v2";
+/// Points the client at another host. Used by tests to simulate an outage.
+pub const API_BASE_ENV: &str = "CURRCALC_API_BASE";
 pub const SOURCE: &str = "frankfurter.dev";
 
 /// A single exchange rate quoted by the API.
@@ -68,8 +70,15 @@ pub struct Client {
 }
 
 impl Client {
+    /// Build a client for `CURRCALC_API_BASE` when that variable holds a
+    /// non-empty value, otherwise for the public API.
     pub fn new() -> Self {
-        Self::with_base(API_BASE)
+        let base = std::env::var(API_BASE_ENV)
+            .ok()
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| API_BASE.to_string());
+        Self::with_base(base)
     }
 
     pub fn with_base(base: impl Into<String>) -> Self {
