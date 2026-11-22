@@ -9,6 +9,7 @@ use crate::api::{Currency, Rate};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -134,7 +135,22 @@ impl Cache {
 
         let target = self.dir.join(name);
         let tmp = self.dir.join(format!("{name}.{}.tmp", std::process::id()));
-        fs::write(&tmp, bytes)?;
+
+        // A run killed mid-write can leave this name behind, and the pid may
+        // have been reused since. Drop the leftover and create the file
+        // exclusively so the write cannot land on a symlink.
+        let _ = fs::remove_file(&tmp);
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&tmp)?;
+        if let Err(err) = file.write_all(&bytes) {
+            drop(file);
+            let _ = fs::remove_file(&tmp);
+            return Err(err.into());
+        }
+        drop(file);
+
         if let Err(err) = fs::rename(&tmp, &target) {
             let _ = fs::remove_file(&tmp);
             return Err(err.into());
@@ -317,6 +333,23 @@ mod tests {
 
         assert_eq!(cached.data, sample_currencies());
         assert_eq!(cached.data[1].symbol, None);
+    }
+
+    #[test]
+    fn replaces_a_leftover_temp_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = Cache::at(dir.path());
+        let leftover = dir
+            .path()
+            .join(format!("rate_eur_usd.json.{}.tmp", std::process::id()));
+        fs::write(&leftover, b"stale half written entry").unwrap();
+
+        cache
+            .store_rate("EUR", "USD", None, &sample_rate())
+            .unwrap();
+
+        assert!(!leftover.exists());
+        assert_eq!(cache.rate("EUR", "USD", None).unwrap().data, sample_rate());
     }
 
     #[test]
