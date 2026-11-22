@@ -16,6 +16,8 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 pub const RATE_TTL: Duration = Duration::from_secs(60 * 60);
 /// The list of currencies changes rarely; a week is plenty.
 pub const CURRENCIES_TTL: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+/// Tolerance for a system clock that steps a little between write and read.
+const CLOCK_SKEW: u64 = 60;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Entry<T> {
@@ -108,9 +110,16 @@ impl Cache {
     fn read<T: DeserializeOwned>(&self, name: &str) -> Option<Cached<T>> {
         let bytes = fs::read(self.dir.join(name)).ok()?;
         let entry: Entry<T> = serde_json::from_slice(&bytes).ok()?;
+        let now = now_secs();
+        if entry.fetched_at > now.saturating_add(CLOCK_SKEW) {
+            // The stamp is in the future, so either the clock moved backwards
+            // or the file was touched. Treat it as a miss instead of letting
+            // it stay fresh until the clock catches up.
+            return None;
+        }
         Some(Cached {
             data: entry.data,
-            age: Duration::from_secs(now_secs().saturating_sub(entry.fetched_at)),
+            age: Duration::from_secs(now.saturating_sub(entry.fetched_at)),
         })
     }
 
@@ -245,6 +254,39 @@ mod tests {
 
         let cached = cache.rate("EUR", "USD", None).unwrap();
         assert!(cached.age >= Duration::from_secs(3 * 60 * 60));
+    }
+
+    #[test]
+    fn ignores_entries_stamped_in_the_future() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = Cache::at(dir.path());
+        let future = now_secs() + 24 * 60 * 60;
+        fs::write(
+            dir.path().join("rate_eur_usd.json"),
+            format!(
+                r#"{{"fetched_at":{future},"data":{{"date":"2023-07-14","base":"EUR","quote":"USD","rate":1.1193}}}}"#
+            ),
+        )
+        .unwrap();
+
+        assert!(cache.rate("EUR", "USD", None).is_none());
+    }
+
+    #[test]
+    fn tolerates_a_small_clock_skew() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = Cache::at(dir.path());
+        let slightly_ahead = now_secs() + CLOCK_SKEW / 2;
+        fs::write(
+            dir.path().join("rate_eur_usd.json"),
+            format!(
+                r#"{{"fetched_at":{slightly_ahead},"data":{{"date":"2023-07-14","base":"EUR","quote":"USD","rate":1.1193}}}}"#
+            ),
+        )
+        .unwrap();
+
+        let cached = cache.rate("EUR", "USD", None).unwrap();
+        assert_eq!(cached.age, Duration::ZERO);
     }
 
     #[test]
