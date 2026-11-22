@@ -88,9 +88,10 @@ EUR   Euro
 
 `list` matches any part of the code or the name: `list euro` finds EUR, and
 `list dollar` finds every currency with Dollar in its name. The default list
-holds the 161 fiat currencies the API covers. Add `--all` to include crypto and
-metals such as BTC and XAU; those rows gain a type column. `--json` prints an
-array of objects with `code`, `name`, `symbol` and `type`.
+holds the fiat currencies the API covers (161 at the time of writing). Add
+`--all` to include crypto and metals such as BTC and XAU; those rows gain a
+type column. `--json` prints an array of objects with `code`, `name`,
+`symbol` and `type`.
 
 ## Options
 
@@ -103,7 +104,8 @@ array of objects with `code`, `name`, `symbol` and `type`.
 | `--offline` | Never touch the network, use cached data only |
 
 Options may be placed before or after the currencies. `--date` belongs to
-conversions; `list` rejects it instead of ignoring it.
+conversions; `list` rejects it instead of ignoring it. `--precision` only
+affects the converted number and has no effect on `list`.
 
 Historical lookups work for any date the API covers for that pair. A date
 outside the coverage returns an error. For example,
