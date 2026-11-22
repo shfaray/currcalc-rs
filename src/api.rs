@@ -44,6 +44,9 @@ impl std::fmt::Display for ApiError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ApiError::UnknownCurrency(code) => write!(f, "unknown currency: {code}"),
+            ApiError::NotFound(message) if message == "not found" => {
+                write!(f, "no rate found for this currency pair and date")
+            }
             ApiError::NotFound(message) => write!(f, "rate not found: {message}"),
             ApiError::Network(message) => write!(f, "network error: {message}"),
             ApiError::BadResponse(message) => write!(f, "unexpected response: {message}"),
