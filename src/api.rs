@@ -201,9 +201,12 @@ fn error_from_response(status: u16, body: &str) -> ApiError {
         .unwrap_or_else(|_| body.trim().to_string());
 
     if status == 422
-        && let Some(code) = message.strip_prefix("invalid currency: ")
+        && let Some(code) = message
+            .strip_prefix("invalid currency")
+            .map(|rest| rest.trim_start_matches(|ch: char| ch == ':' || ch.is_whitespace()))
+        && !code.is_empty()
     {
-        return ApiError::UnknownCurrency(code.trim().to_ascii_uppercase());
+        return ApiError::UnknownCurrency(code.to_ascii_uppercase());
     }
 
     match status {
@@ -246,6 +249,21 @@ mod tests {
         let err = error_from_response(422, UNKNOWN_FIXTURE);
         assert_eq!(err, ApiError::UnknownCurrency("XYZ".to_string()));
         assert_eq!(err.to_string(), "unknown currency: XYZ");
+
+        for body in [
+            r#"{"status":422,"message":"invalid currency:XYZ"}"#,
+            r#"{"status":422,"message":"invalid currency:  xyz"}"#,
+        ] {
+            assert_eq!(
+                error_from_response(422, body),
+                ApiError::UnknownCurrency("XYZ".to_string())
+            );
+        }
+
+        assert!(matches!(
+            error_from_response(422, r#"{"status":422,"message":"invalid currency"}"#),
+            ApiError::BadResponse(_)
+        ));
     }
 
     #[test]
