@@ -39,7 +39,9 @@ Run `cargo fmt` before committing.
 - Examples in the READMEs and in `--help` use illustrative amounts and rates,
   not live values.
 - Commit in English using Conventional Commits, one logical change per commit.
-- Do not push without explicit permission from the user. Commit locally and
-  wait until the user asks for a push.
+- Never run `git push` (a branch or a tag) without permission for that exact
+  push. Commit locally, then stop and ask. Permission for an earlier push, for
+  the session, or for "the changes" does not carry over: every push needs its
+  own explicit yes, and only the refs named in that yes may be pushed.
 - Do not rewrite pushed history, force-push, or change git config unless the
   user asks for it.
