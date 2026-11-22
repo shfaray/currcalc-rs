@@ -466,6 +466,27 @@ mod tests {
     }
 
     #[test]
+    fn accepts_three_to_five_letter_codes() {
+        assert_eq!(normalize_code(" eur ").unwrap(), "EUR");
+        assert_eq!(normalize_code("eUr").unwrap(), "EUR");
+        assert_eq!(normalize_code("USDT").unwrap(), "USDT");
+
+        for bad in ["", "eu", "eurooo", "e1r", "еур", "eur-usd"] {
+            assert!(normalize_code(bad).is_err(), "{bad:?} should be rejected");
+        }
+    }
+
+    #[test]
+    fn tells_amounts_from_codes() {
+        for amount in ["1", "137.42", "1,5", "1e5", "+5"] {
+            assert!(is_numeric(amount), "{amount:?} should be an amount");
+        }
+        for code in ["eur", "XAU", ""] {
+            assert!(!is_numeric(code), "{code:?} should be a code");
+        }
+    }
+
+    #[test]
     fn formats_age() {
         assert_eq!(human_age(Duration::from_secs(10)), "less than a minute ago");
         assert_eq!(human_age(Duration::from_secs(90)), "1 min ago");

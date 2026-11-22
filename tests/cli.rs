@@ -49,6 +49,11 @@ impl Fixture {
     /// Run against a host that refuses connections, with proxies cleared so
     /// the failure is the one the test is about.
     fn unreachable_api(&self) -> Command {
+        self.api_at("http://127.0.0.1:1")
+    }
+
+    /// Run against an explicit API base, with proxies cleared.
+    fn api_at(&self, base: &str) -> Command {
         let mut command = self.command();
         for var in [
             "HTTP_PROXY",
@@ -62,7 +67,7 @@ impl Fixture {
         ] {
             command.env_remove(var);
         }
-        command.env("CURRCALC_API_BASE", "http://127.0.0.1:1");
+        command.env("CURRCALC_API_BASE", base);
         command
     }
 
@@ -191,6 +196,29 @@ fn list_json_output() {
 }
 
 #[test]
+fn list_all_json_marks_the_type() {
+    let output = Fixture::new()
+        .offline()
+        .args(["list", "--all", "--json"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let items: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(items.len(), 7);
+    assert!(
+        items
+            .iter()
+            .any(|item| item["code"] == "BTC" && item["type"] == "crypto")
+    );
+    assert!(
+        items
+            .iter()
+            .any(|item| item["code"] == "XAU" && item["type"] == "metal")
+    );
+}
+
+#[test]
 fn converts_with_plain_number_output() {
     Fixture::new()
         .offline()
@@ -254,6 +282,50 @@ fn json_output_carries_details() {
     assert_eq!(value["rate"], 1.1193);
     assert_eq!(value["date"], "2023-07-14");
     assert_eq!(value["source"], "frankfurter.dev");
+}
+
+#[test]
+fn json_result_follows_precision_but_rate_does_not() {
+    let output = Fixture::new()
+        .offline()
+        .args(["--json", "--precision", "1", "eur", "usd", "137.42"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["result"], 153.8);
+    assert_eq!(value["rate"], 1.1193);
+}
+
+#[test]
+fn unknown_currency_prints_a_hint() {
+    let base = serve_once(422, r#"{"status":422,"message":"invalid currency: XYZ"}"#);
+
+    Fixture::new()
+        .api_at(&base)
+        .args(["xyz", "usd", "10"])
+        .assert()
+        .failure()
+        .code(1)
+        .stdout(predicate::str::is_empty())
+        .stderr(predicate::str::contains("unknown currency: XYZ"))
+        .stderr(predicate::str::contains("currcalc list XYZ"));
+}
+
+#[test]
+fn missing_rate_uses_the_api_message() {
+    let base = serve_once(404, r#"{"status":404,"message":"not found"}"#);
+
+    Fixture::new()
+        .api_at(&base)
+        .args(["--date", "2024-05-15", "eur", "usd"])
+        .assert()
+        .failure()
+        .code(1)
+        .stderr(predicate::str::contains(
+            "no rate found for this currency pair and date",
+        ));
 }
 
 #[test]
@@ -445,4 +517,40 @@ fn now_secs() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_secs()
+}
+
+/// Serve one canned HTTP response on a loopback port and return its base URL.
+fn serve_once(status: u16, body: &'static str) -> String {
+    use std::io::{Read, Write};
+
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    std::thread::spawn(move || {
+        let Ok((mut stream, _)) = listener.accept() else {
+            return;
+        };
+
+        // Wait for the end of the request headers, then answer and close.
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 512];
+        loop {
+            match stream.read(&mut buffer) {
+                Ok(0) | Err(_) => break,
+                Ok(read) => {
+                    request.extend_from_slice(&buffer[..read]);
+                    if request.windows(4).any(|window| window == b"\r\n\r\n") {
+                        break;
+                    }
+                }
+            }
+        }
+
+        let response = format!(
+            "HTTP/1.1 {status} X\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        let _ = stream.write_all(response.as_bytes());
+    });
+
+    format!("http://{address}")
 }
