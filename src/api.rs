@@ -86,10 +86,15 @@ impl Client {
     }
 
     pub fn rate(&self, from: &str, to: &str, date: Option<&str>) -> Result<Rate, ApiError> {
-        let mut url = format!("{}/rate/{from}/{to}", self.base);
+        let mut url = format!(
+            "{}/rate/{}/{}",
+            self.base,
+            encode_segment(from),
+            encode_segment(to)
+        );
         if let Some(date) = date {
             url.push_str("?date=");
-            url.push_str(date);
+            url.push_str(&encode_segment(date));
         }
         parse_rate(&self.get(&url)?)
     }
@@ -173,6 +178,23 @@ fn is_leap_year(year: u32) -> bool {
     year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400))
 }
 
+/// Percent-encode one URL path segment or query value.
+///
+/// The CLI only passes validated codes and dates, but this is a public
+/// client, so a caller cannot smuggle `?`, `#` or a slash into the request.
+fn encode_segment(value: &str) -> String {
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                encoded.push(byte as char);
+            }
+            _ => encoded.push_str(&format!("%{byte:02X}")),
+        }
+    }
+    encoded
+}
+
 fn error_from_response(status: u16, body: &str) -> ApiError {
     let message = serde_json::from_str::<ErrorBody>(body)
         .map(|parsed| parsed.message)
@@ -230,6 +252,16 @@ mod tests {
     fn maps_missing_rate_to_not_found() {
         let err = error_from_response(404, r#"{"status":404,"message":"not found"}"#);
         assert_eq!(err, ApiError::NotFound("not found".to_string()));
+    }
+
+    #[test]
+    fn encodes_url_segments() {
+        assert_eq!(encode_segment("EUR"), "EUR");
+        assert_eq!(encode_segment("2023-07-14"), "2023-07-14");
+        assert_eq!(encode_segment("a/b"), "a%2Fb");
+        assert_eq!(encode_segment("x?y#z"), "x%3Fy%23z");
+        assert_eq!(encode_segment("a b"), "a%20b");
+        assert_eq!(encode_segment(""), "");
     }
 
     #[test]
