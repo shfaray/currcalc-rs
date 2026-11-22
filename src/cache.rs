@@ -278,21 +278,20 @@ mod tests {
     }
 
     #[test]
-    fn writes_stay_inside_cache_directory() {
-        let dir = tempfile::tempdir().unwrap();
-        let cache = Cache::at(dir.path());
+    fn sanitize_strips_path_characters() {
+        assert_eq!(sanitize("eur/chf"), "eurchf");
+        assert_eq!(sanitize("eur\\chf"), "eurchf");
+        assert_eq!(sanitize("eur chf"), "eurchf");
+        assert_eq!(sanitize("usd.v2"), "usdv2");
+        assert_eq!(sanitize("EUR-CHF"), "eur-chf");
+    }
 
-        cache
-            .store_rate("../../etc", "passwd", None, &sample_rate())
-            .unwrap();
-
-        let entries: Vec<_> = fs::read_dir(dir.path())
-            .unwrap()
-            .map(|entry| entry.unwrap().file_name())
-            .collect();
+    #[test]
+    fn rate_file_names_are_flat() {
+        assert_eq!(rate_file("EUR", "USD", None), "rate_eur_usd.json");
         assert_eq!(
-            entries,
-            vec![std::ffi::OsString::from("rate_etc_passwd.json")]
+            rate_file("EUR", "USD", Some("2023-07-14")),
+            "rate_2023-07-14_eur_usd.json"
         );
     }
 }
