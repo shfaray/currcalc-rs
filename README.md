@@ -18,38 +18,37 @@ The binary goes to `~/.cargo/bin`. To build without installing:
 
 ```sh
 cargo build --release
-./target/release/currcalc --date 2023-07-14 eur usd 137.42
+./target/release/currcalc eur usd 137.42
 ```
 
 ## Usage
 
 ```sh
-$ currcalc --date 2023-07-14 eur usd 137.42
-153.81
+$ currcalc eur usd 137.42
+149.40
 
-$ currcalc --date 2023-07-14 42,75 gbp usd
-55.95
+$ currcalc 42,75 gbp usd
+54.06
 
-$ currcalc --date 2023-07-14 eur usd
-1.12
+$ currcalc eur usd
+1.09
 ```
 
 The amount defaults to 1 and can stand before or after the currency pair.
-Currency codes are case insensitive. The examples use the rate published on
-14 July 2023 so the numbers stay stable over time; drop `--date` for the
-latest rate.
+Currency codes are case insensitive. Numbers in the examples are
+illustrative; a real call returns the current reference rate.
 
 Plain output is a single number, so it drops into scripts:
 
 ```sh
-total=$(currcalc --date 2023-07-14 chf eur 918.40)
+total=$(currcalc chf eur 918.40)
 ```
 
 Add `--json` when you need the rate, its date and the source:
 
 ```sh
-$ currcalc --json --date 2023-07-14 eur usd 137.42
-{"amount":137.42,"date":"2023-07-14","from":"EUR","rate":1.1193,"result":153.81,"source":"frankfurter.dev","to":"USD"}
+$ currcalc --json eur usd 137.42
+{"amount":137.42,"date":"2025-02-11","from":"EUR","rate":1.0872,"result":149.40,"source":"frankfurter.dev","to":"USD"}
 ```
 
 `result` is rounded to `--precision`, `rate` is the unrounded value returned
@@ -104,7 +103,7 @@ Options may be placed before or after the currencies.
 
 Historical lookups work for any date the API covers for that pair. A date
 outside the coverage returns an error. For example,
-`--precision 5 --date 2022-09-28 eur usd` prints 0.96024.
+`--precision 4 --date 2024-05-15 eur usd` prints 1.0824.
 
 ## Cache
 

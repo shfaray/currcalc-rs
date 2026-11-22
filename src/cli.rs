@@ -11,9 +11,9 @@ const EXAMPLES: &str = "\
 Examples:
   currcalc list
   currcalc list franc
-  currcalc --date 2023-07-14 eur usd 137.42
-  currcalc --date 2023-07-14 42,75 gbp usd
-  currcalc --precision 4 --json --date 2023-07-14 eur usd 137.42";
+  currcalc eur usd 137.42
+  currcalc 42,75 gbp usd
+  currcalc --precision 4 --json eur usd 137.42";
 
 #[derive(Parser)]
 #[command(

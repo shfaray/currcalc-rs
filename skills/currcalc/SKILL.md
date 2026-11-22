@@ -43,10 +43,11 @@ API also knows assets such as `BTC` and `XAU` when `list --all` shows them.
 Plain mode writes one number to stdout and nothing else:
 
 ```sh
-$ currcalc --date 2023-07-14 eur usd 137.42
-153.81
+$ currcalc eur usd 137.42
+149.40
 ```
 
+The examples here are illustrative; a real call returns the current rate.
 The value is rounded to `--precision`, which defaults to 2. Raise the
 precision before using the number in further arithmetic (`--precision 8`), or
 take the unrounded `rate` from `--json` and multiply once in the calling code.
@@ -54,7 +55,7 @@ take the unrounded `rate` from `--json` and multiply once in the calling code.
 `--json` carries the provenance:
 
 ```json
-{"amount":137.42,"date":"2023-07-14","from":"EUR","rate":1.1193,"result":153.81,"source":"frankfurter.dev","to":"USD"}
+{"amount":137.42,"date":"2025-02-11","from":"EUR","rate":1.0872,"result":149.40,"source":"frankfurter.dev","to":"USD"}
 ```
 
 Read fields by name; key order is not part of the contract. `result` is
@@ -68,9 +69,8 @@ instead of parsing stderr.
 
 - Quote the date and the rate next to a converted amount, taken from
   `--json`. A bare number cannot be checked later.
-- Pass `--date` when the result lands in a document, test or report, so the
-  number stays reproducible.
-- Omit `--date` when the user asks for the current rate.
+- Add `--date` only when the user asks for the rate on a particular day. A
+  plain call already returns the current rate.
 - Call these mid-market reference rates, updated once or a few times a day.
   Mention that when the user plans to trade, invoice or file taxes on the
   result.
@@ -121,7 +121,7 @@ currcalc --precision 4 eur usd "2 480,15"
 converted=$(currcalc --precision 8 eur usd 918.40)
 
 # rate plus date for a report
-currcalc --json --date 2023-07-14 eur usd 137.42
+currcalc --json eur usd 137.42
 
 # verified code before a conversion
 currcalc list --json swiss

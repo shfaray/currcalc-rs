@@ -18,38 +18,38 @@ cargo install --path .
 
 ```sh
 cargo build --release
-./target/release/currcalc --date 2023-07-14 eur usd 137.42
+./target/release/currcalc eur usd 137.42
 ```
 
 ## Использование
 
 ```sh
-$ currcalc --date 2023-07-14 eur usd 137.42
-153.81
+$ currcalc eur usd 137.42
+149.40
 
-$ currcalc --date 2023-07-14 42,75 gbp usd
-55.95
+$ currcalc 42,75 gbp usd
+54.06
 
-$ currcalc --date 2023-07-14 eur usd
-1.12
+$ currcalc eur usd
+1.09
 ```
 
 Сумма по умолчанию равна 1 и может стоять до или после пары валют. Регистр
-кодов не важен. В примерах взят курс на 14 июля 2023 года, чтобы числа не
-менялись со временем. Без `--date` берётся актуальный курс.
+кодов не важен. Числа в примерах условные, реальный вызов вернёт актуальный
+справочный курс.
 
 В обычном режиме в stdout уходит одно число, поэтому результат удобно
 забирать в скриптах:
 
 ```sh
-total=$(currcalc --date 2023-07-14 chf eur 918.40)
+total=$(currcalc chf eur 918.40)
 ```
 
 Флаг `--json` добавляет курс, дату и источник:
 
 ```sh
-$ currcalc --json --date 2023-07-14 eur usd 137.42
-{"amount":137.42,"date":"2023-07-14","from":"EUR","rate":1.1193,"result":153.81,"source":"frankfurter.dev","to":"USD"}
+$ currcalc --json eur usd 137.42
+{"amount":137.42,"date":"2025-02-11","from":"EUR","rate":1.0872,"result":149.40,"source":"frankfurter.dev","to":"USD"}
 ```
 
 `result` округляется до `--precision`, а `rate` содержит исходное значение из
@@ -104,7 +104,7 @@ EUR   Euro
 
 Исторические курсы доступны для любой даты, которая есть в API для данной
 пары. Дата вне покрытия возвращает ошибку. Например,
-`--precision 5 --date 2022-09-28 eur usd` печатает 0.96024.
+`--precision 4 --date 2024-05-15 eur usd` печатает 1.0824.
 
 ## Кэш
 

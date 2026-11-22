@@ -325,9 +325,7 @@ fn help_lists_commands_and_examples() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Usage: currcalc"))
-        .stdout(predicate::str::contains(
-            "currcalc --date 2023-07-14 eur usd 137.42",
-        ));
+        .stdout(predicate::str::contains("currcalc eur usd 137.42"));
 }
 
 fn now_secs() -> u64 {
