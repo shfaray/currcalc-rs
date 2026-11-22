@@ -149,12 +149,28 @@ pub fn validate_date(date: &str) -> Result<(), String> {
         return Err(format!("invalid date: {date} (expected YYYY-MM-DD)"));
     }
 
-    let month: u8 = date[5..7].parse().unwrap_or(0);
-    let day: u8 = date[8..10].parse().unwrap_or(0);
-    if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+    let year: u32 = date[..4].parse().unwrap_or(0);
+    let month: u32 = date[5..7].parse().unwrap_or(0);
+    let day: u32 = date[8..10].parse().unwrap_or(0);
+
+    if !(1..=12).contains(&month) || day == 0 || day > days_in_month(year, month) {
         return Err(format!("invalid date: {date}"));
     }
     Ok(())
+}
+
+fn days_in_month(year: u32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if is_leap_year(year) => 29,
+        2 => 28,
+        _ => 0,
+    }
+}
+
+fn is_leap_year(year: u32) -> bool {
+    year.is_multiple_of(4) && (!year.is_multiple_of(100) || year.is_multiple_of(400))
 }
 
 fn error_from_response(status: u16, body: &str) -> ApiError {
@@ -228,6 +244,29 @@ mod tests {
     fn validates_date_shape() {
         assert!(validate_date("2024-05-15").is_ok());
         for bad in ["2024-5-15", "15.05.2024", "2024-13-01", "2024-05-32", ""] {
+            assert!(validate_date(bad).is_err(), "{bad:?} should be rejected");
+        }
+    }
+
+    #[test]
+    fn validates_calendar_dates() {
+        for good in [
+            "2024-02-29",
+            "2000-02-29",
+            "2023-12-31",
+            "2024-04-30",
+            "1999-01-01",
+        ] {
+            assert!(validate_date(good).is_ok(), "{good:?} should be accepted");
+        }
+        for bad in [
+            "2023-02-29",
+            "2024-02-30",
+            "1900-02-29",
+            "2024-04-31",
+            "2024-00-10",
+            "2024-01-00",
+        ] {
             assert!(validate_date(bad).is_err(), "{bad:?} should be rejected");
         }
     }
