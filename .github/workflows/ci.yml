@@ -31,6 +31,28 @@ jobs:
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked
 
+  msrv:
+    name: minimum supported Rust
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --locked --all-targets
+
+  cross:
+    name: check on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --locked --all-targets
+
   build:
     name: release build
     runs-on: ubuntu-latest
@@ -49,7 +71,7 @@ jobs:
   release:
     name: publish
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [check, build]
+    needs: [check, msrv, cross, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -65,7 +87,7 @@ jobs:
             echo "tag ${GITHUB_REF_NAME} does not look like vX.Y.Z" >&2
             exit 1
           fi
-          sed -i -E "s/^version = \"[^\"]+\"/version = \"$version\"/" Cargo.toml
+          sed -i "0,/^version = \"[^\"]*\"/s//version = \"$version\"/" Cargo.toml
           grep '^version = ' Cargo.toml
 
       - name: Build with the tag version
