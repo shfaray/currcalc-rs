@@ -178,17 +178,17 @@ fn error_from_response(status: u16, body: &str) -> ApiError {
 mod tests {
     use super::*;
 
-    const RATE_FIXTURE: &str = include_str!("../tests/fixtures/rate_usd_rub.json");
+    const RATE_FIXTURE: &str = include_str!("../tests/fixtures/rate_eur_usd.json");
     const UNKNOWN_FIXTURE: &str = include_str!("../tests/fixtures/rate_unknown.json");
     const CURRENCIES_FIXTURE: &str = include_str!("../tests/fixtures/currencies.json");
 
     #[test]
     fn parses_rate_response() {
         let rate = parse_rate(RATE_FIXTURE).unwrap();
-        assert_eq!(rate.base, "USD");
-        assert_eq!(rate.quote, "RUB");
-        assert_eq!(rate.date, "2026-11-22");
-        assert!((rate.rate - 82.0).abs() < f64::EPSILON);
+        assert_eq!(rate.base, "EUR");
+        assert_eq!(rate.quote, "USD");
+        assert_eq!(rate.date, "2023-07-14");
+        assert!((rate.rate - 1.1193).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -236,15 +236,15 @@ mod tests {
     #[ignore = "hits the live frankfurter.dev API"]
     fn talks_to_the_real_api() {
         let client = Client::new();
-        let rate = client.rate("USD", "RUB", None).unwrap();
-        assert_eq!(rate.base, "USD");
-        assert_eq!(rate.quote, "RUB");
+        let rate = client.rate("EUR", "USD", None).unwrap();
+        assert_eq!(rate.base, "EUR");
+        assert_eq!(rate.quote, "USD");
         assert!(rate.rate > 0.0);
 
         let currencies = client.currencies().unwrap();
         assert!(currencies.len() > 100);
 
-        let historical = client.rate("USD", "RUB", Some("2024-05-15")).unwrap();
-        assert_eq!(historical.date, "2024-05-15");
+        let historical = client.rate("EUR", "USD", Some("2023-07-14")).unwrap();
+        assert_eq!(historical.date, "2023-07-14");
     }
 }

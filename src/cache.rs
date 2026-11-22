@@ -165,10 +165,10 @@ mod tests {
 
     fn sample_rate() -> Rate {
         Rate {
-            date: "2026-11-22".to_string(),
-            base: "USD".to_string(),
-            quote: "RUB".to_string(),
-            rate: 82.0,
+            date: "2023-07-14".to_string(),
+            base: "EUR".to_string(),
+            quote: "USD".to_string(),
+            rate: 1.1193,
         }
     }
 
@@ -195,9 +195,9 @@ mod tests {
         let cache = Cache::at(dir.path());
 
         cache
-            .store_rate("USD", "RUB", None, &sample_rate())
+            .store_rate("EUR", "USD", None, &sample_rate())
             .unwrap();
-        let cached = cache.rate("USD", "RUB", None).unwrap();
+        let cached = cache.rate("EUR", "USD", None).unwrap();
 
         assert_eq!(cached.data, sample_rate());
         assert!(cached.age < Duration::from_secs(5));
@@ -209,25 +209,25 @@ mod tests {
         let cache = Cache::at(dir.path());
 
         cache
-            .store_rate("USD", "RUB", None, &sample_rate())
+            .store_rate("EUR", "USD", None, &sample_rate())
             .unwrap();
         let mut historical = sample_rate();
-        historical.date = "2024-05-15".to_string();
-        historical.rate = 91.38;
+        historical.date = "2022-09-28".to_string();
+        historical.rate = 0.96024;
         cache
-            .store_rate("USD", "RUB", Some("2024-05-15"), &historical)
+            .store_rate("EUR", "USD", Some("2022-09-28"), &historical)
             .unwrap();
 
-        assert_eq!(cache.rate("USD", "RUB", None).unwrap().data.rate, 82.0);
+        assert_eq!(cache.rate("EUR", "USD", None).unwrap().data.rate, 1.1193);
         assert_eq!(
             cache
-                .rate("USD", "RUB", Some("2024-05-15"))
+                .rate("EUR", "USD", Some("2022-09-28"))
                 .unwrap()
                 .data
                 .rate,
-            91.38
+            0.96024
         );
-        assert!(cache.rate("USD", "RUB", Some("2024-05-16")).is_none());
+        assert!(cache.rate("EUR", "USD", Some("2022-09-29")).is_none());
     }
 
     #[test]
@@ -236,14 +236,14 @@ mod tests {
         let cache = Cache::at(dir.path());
         let stale = now_secs().saturating_sub(3 * 60 * 60);
         fs::write(
-            dir.path().join("rate_usd_rub.json"),
+            dir.path().join("rate_eur_usd.json"),
             format!(
-                r#"{{"fetched_at":{stale},"data":{{"date":"2026-11-22","base":"USD","quote":"RUB","rate":82.0}}}}"#
+                r#"{{"fetched_at":{stale},"data":{{"date":"2023-07-14","base":"EUR","quote":"USD","rate":1.1193}}}}"#
             ),
         )
         .unwrap();
 
-        let cached = cache.rate("USD", "RUB", None).unwrap();
+        let cached = cache.rate("EUR", "USD", None).unwrap();
         assert!(cached.age >= Duration::from_secs(3 * 60 * 60));
     }
 
@@ -251,9 +251,9 @@ mod tests {
     fn ignores_corrupt_entries() {
         let dir = tempfile::tempdir().unwrap();
         let cache = Cache::at(dir.path());
-        fs::write(dir.path().join("rate_usd_rub.json"), b"{not json").unwrap();
+        fs::write(dir.path().join("rate_eur_usd.json"), b"{not json").unwrap();
 
-        assert!(cache.rate("USD", "RUB", None).is_none());
+        assert!(cache.rate("EUR", "USD", None).is_none());
     }
 
     #[test]
@@ -261,7 +261,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let cache = Cache::at(dir.path().join("does-not-exist"));
 
-        assert!(cache.rate("USD", "RUB", None).is_none());
+        assert!(cache.rate("EUR", "USD", None).is_none());
         assert!(cache.currencies().is_none());
     }
 

@@ -20,10 +20,15 @@ impl Fixture {
 
         cache.store_currencies(&currencies()).unwrap();
         cache
-            .store_rate("USD", "RUB", None, &rate("2026-11-22", 82.0))
+            .store_rate("EUR", "USD", None, &rate("2023-07-14", 1.1193))
             .unwrap();
         cache
-            .store_rate("USD", "RUB", Some("2024-05-15"), &rate("2024-05-15", 91.38))
+            .store_rate(
+                "EUR",
+                "USD",
+                Some("2022-09-28"),
+                &rate("2022-09-28", 0.96024),
+            )
             .unwrap();
 
         Self { home, cache_dir }
@@ -45,8 +50,8 @@ impl Fixture {
 fn rate(date: &str, value: f64) -> Rate {
     Rate {
         date: date.to_string(),
-        base: "USD".to_string(),
-        quote: "RUB".to_string(),
+        base: "EUR".to_string(),
+        quote: "USD".to_string(),
         rate: value,
     }
 }
@@ -55,7 +60,7 @@ fn currencies() -> Vec<Currency> {
     [
         ("USD", "United States Dollar", Some("$"), "currency"),
         ("EUR", "Euro", Some("€"), "currency"),
-        ("RUB", "Russian Ruble", Some("₽"), "currency"),
+        ("CHF", "Swiss Franc", Some("Fr"), "currency"),
         ("JPY", "Japanese Yen", Some("¥"), "currency"),
         ("GBP", "British Pound", Some("£"), "currency"),
         ("BTC", "Bitcoin", Some("₿"), "crypto"),
@@ -79,7 +84,7 @@ fn lists_only_fiat_by_default() {
         .assert()
         .success()
         .stdout(
-            "EUR   Euro\nGBP   British Pound\nJPY   Japanese Yen\nRUB   Russian Ruble\nUSD   United States Dollar\n",
+            "CHF   Swiss Franc\nEUR   Euro\nGBP   British Pound\nJPY   Japanese Yen\nUSD   United States Dollar\n",
         )
         .stdout(predicate::str::contains("BTC").not());
 }
@@ -88,10 +93,10 @@ fn lists_only_fiat_by_default() {
 fn list_filters_by_code_or_name() {
     Fixture::new()
         .offline()
-        .args(["list", "ruble"])
+        .args(["list", "franc"])
         .assert()
         .success()
-        .stdout("RUB   Russian Ruble\n");
+        .stdout("CHF   Swiss Franc\n");
 
     Fixture::new()
         .offline()
@@ -137,8 +142,8 @@ fn list_json_output() {
     let items: Vec<serde_json::Value> = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(items.len(), 5);
     let first = &items[0];
-    assert_eq!(first["code"], "EUR");
-    assert_eq!(first["name"], "Euro");
+    assert_eq!(first["code"], "CHF");
+    assert_eq!(first["name"], "Swiss Franc");
     assert_eq!(first["type"], "currency");
 }
 
@@ -146,65 +151,65 @@ fn list_json_output() {
 fn converts_with_plain_number_output() {
     Fixture::new()
         .offline()
-        .args(["usd", "rub", "10"])
+        .args(["eur", "usd", "137.42"])
         .assert()
         .success()
-        .stdout("820.00\n");
+        .stdout("153.81\n");
 }
 
 #[test]
 fn amount_can_stand_before_the_pair() {
     Fixture::new()
         .offline()
-        .args(["10", "usd", "rub"])
+        .args(["42.75", "eur", "usd"])
         .assert()
         .success()
-        .stdout("820.00\n");
+        .stdout("47.85\n");
 }
 
 #[test]
 fn accepts_comma_as_decimal_separator() {
     Fixture::new()
         .offline()
-        .args(["51,51", "usd", "rub"])
+        .args(["18,75", "eur", "usd"])
         .assert()
         .success()
-        .stdout("4223.82\n");
+        .stdout("20.99\n");
 }
 
 #[test]
 fn precision_flag_controls_fraction_digits() {
     Fixture::new()
         .offline()
-        .args(["--precision", "6", "usd", "rub", "10"])
+        .args(["--precision", "6", "eur", "usd", "137.42"])
         .assert()
         .success()
-        .stdout("820.000000\n");
+        .stdout("153.814206\n");
 
     Fixture::new()
         .offline()
-        .args(["--precision", "0", "usd", "rub", "10"])
+        .args(["--precision", "0", "eur", "usd", "137.42"])
         .assert()
         .success()
-        .stdout("820\n");
+        .stdout("154\n");
 }
 
 #[test]
 fn json_output_carries_details() {
     let output = Fixture::new()
         .offline()
-        .args(["--json", "usd", "rub", "10"])
+        .args(["--json", "eur", "usd", "137.42"])
         .output()
         .unwrap();
     assert!(output.status.success());
 
     let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
-    assert_eq!(value["from"], "USD");
-    assert_eq!(value["to"], "RUB");
-    assert_eq!(value["amount"], 10.0);
-    assert_eq!(value["result"], 820.0);
-    assert_eq!(value["rate"], 82.0);
-    assert_eq!(value["date"], "2026-11-22");
+    assert_eq!(value["from"], "EUR");
+    assert_eq!(value["to"], "USD");
+    assert_eq!(value["amount"], 137.42);
+    assert_eq!(value["result"], 153.81);
+    assert_eq!(value["rate"], 1.1193);
+    assert_eq!(value["date"], "2023-07-14");
     assert_eq!(value["source"], "frankfurter.dev");
 }
 
@@ -212,31 +217,31 @@ fn json_output_carries_details() {
 fn historical_date_uses_its_own_cache_entry() {
     Fixture::new()
         .offline()
-        .args(["--date", "2024-05-15", "usd", "rub"])
+        .args(["--precision", "5", "--date", "2022-09-28", "eur", "usd"])
         .assert()
         .success()
-        .stdout("91.38\n");
+        .stdout("0.96024\n");
 }
 
 #[test]
 fn offline_without_cache_fails_clearly() {
     let fixture = Fixture::new();
-    std::fs::remove_file(fixture.cache_dir.join("rate_usd_rub.json")).unwrap();
+    std::fs::remove_file(fixture.cache_dir.join("rate_eur_usd.json")).unwrap();
 
     fixture
         .offline()
-        .args(["usd", "rub", "10"])
+        .args(["eur", "usd", "137.42"])
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("no cached rate for USD/RUB"));
+        .stderr(predicate::str::contains("no cached rate for EUR/USD"));
 }
 
 #[test]
 fn no_cache_ignores_existing_entries() {
     Fixture::new()
         .offline()
-        .args(["--no-cache", "usd", "rub", "10"])
+        .args(["--no-cache", "eur", "usd", "137.42"])
         .assert()
         .failure()
         .code(1)
@@ -246,11 +251,11 @@ fn no_cache_ignores_existing_entries() {
 #[test]
 fn corrupt_cache_entry_is_ignored() {
     let fixture = Fixture::new();
-    std::fs::write(fixture.cache_dir.join("rate_usd_rub.json"), b"{broken").unwrap();
+    std::fs::write(fixture.cache_dir.join("rate_eur_usd.json"), b"{broken").unwrap();
 
     fixture
         .offline()
-        .args(["usd", "rub", "10"])
+        .args(["eur", "usd", "137.42"])
         .assert()
         .failure()
         .code(1)
@@ -262,21 +267,21 @@ fn stale_entry_is_used_with_a_warning_when_offline() {
     let fixture = Fixture::new();
     let stale = now_secs() - 3 * 60 * 60;
     std::fs::write(
-        fixture.cache_dir.join("rate_usd_rub.json"),
+        fixture.cache_dir.join("rate_eur_usd.json"),
         format!(
-            r#"{{"fetched_at":{stale},"data":{{"date":"2026-11-22","base":"USD","quote":"RUB","rate":82.0}}}}"#
+            r#"{{"fetched_at":{stale},"data":{{"date":"2023-07-14","base":"EUR","quote":"USD","rate":1.1193}}}}"#
         ),
     )
     .unwrap();
 
     fixture
         .offline()
-        .args(["usd", "rub", "10"])
+        .args(["eur", "usd", "137.42"])
         .assert()
         .success()
-        .stdout("820.00\n")
+        .stdout("153.81\n")
         .stderr(predicate::str::contains(
-            "using cached rate from 2026-11-22",
+            "using cached rate from 2023-07-14",
         ));
 }
 
@@ -284,7 +289,7 @@ fn stale_entry_is_used_with_a_warning_when_offline() {
 fn missing_currency_is_a_usage_error() {
     Fixture::new()
         .offline()
-        .args(["usd"])
+        .args(["eur"])
         .assert()
         .failure()
         .code(1)
@@ -295,7 +300,7 @@ fn missing_currency_is_a_usage_error() {
 fn invalid_precision_is_rejected_by_the_parser() {
     Fixture::new()
         .command()
-        .args(["--precision", "9", "usd", "rub"])
+        .args(["--precision", "9", "eur", "usd"])
         .assert()
         .failure()
         .code(2)
@@ -320,7 +325,9 @@ fn help_lists_commands_and_examples() {
         .assert()
         .success()
         .stdout(predicate::str::contains("Usage: currcalc"))
-        .stdout(predicate::str::contains("currcalc usd rub 10"));
+        .stdout(predicate::str::contains(
+            "currcalc --date 2023-07-14 eur usd 137.42",
+        ));
 }
 
 fn now_secs() -> u64 {

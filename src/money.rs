@@ -4,7 +4,7 @@
 //! contain grouping separators. Grouping is only accepted where it is
 //! unambiguous: groups must contain three digits.
 
-/// Parse an amount such as `321.32`, `51,51` or `1 234,56`.
+/// Parse an amount such as `137.42`, `18,75` or `2 480,15`.
 pub fn parse_amount(input: &str) -> Result<f64, String> {
     let trimmed = input.trim();
     if trimmed.is_empty() {
@@ -120,19 +120,19 @@ mod tests {
     #[test]
     fn parses_valid_amounts() {
         let cases = [
-            ("10", 10.0),
-            ("321.32", 321.32),
-            ("51,51", 51.51),
-            ("1 234,56", 1234.56),
-            ("1,234.56", 1234.56),
-            ("1.234,56", 1234.56),
-            ("1.234.567,89", 1_234_567.89),
-            ("1,234,567", 1_234_567.0),
+            ("42", 42.0),
+            ("137.42", 137.42),
+            ("18,75", 18.75),
+            ("2 480,15", 2480.15),
+            ("1,284.60", 1284.6),
+            ("1.284,60", 1284.6),
+            ("2.480.150,75", 2_480_150.75),
+            ("2,480,150", 2_480_150.0),
             ("0", 0.0),
             (".5", 0.5),
             ("5.", 5.0),
             ("+5", 5.0),
-            ("  10  ", 10.0),
+            ("  42  ", 42.0),
             ("1\u{00a0}000", 1000.0),
             ("1\u{202f}000,25", 1000.25),
             ("0,000001", 0.000001),
@@ -150,7 +150,7 @@ mod tests {
     #[test]
     fn rejects_invalid_amounts() {
         for input in [
-            "", "   ", "abc", "-10", "--5", "1,2,3", "1.2.3", "1,23.4,5", ".", ",", "1e5", "12a",
+            "", "   ", "abc", "-42", "--5", "12,34,56", "1.2.3", "1,23.4,5", ".", ",", "1e5", "12a",
         ] {
             assert!(parse_amount(input).is_err(), "{input:?} should be rejected");
         }

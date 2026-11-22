@@ -10,11 +10,10 @@ use std::time::Duration;
 const EXAMPLES: &str = "\
 Examples:
   currcalc list
-  currcalc list rub
-  currcalc usd rub 10
-  currcalc 51,51 usd rub
-  currcalc --precision 6 --json usd rub 10
-  currcalc --date 2024-05-15 usd rub 10";
+  currcalc list franc
+  currcalc --date 2023-07-14 eur usd 137.42
+  currcalc --date 2023-07-14 42,75 gbp usd
+  currcalc --precision 4 --json --date 2023-07-14 eur usd 137.42";
 
 #[derive(Parser)]
 #[command(
@@ -323,7 +322,7 @@ fn parse_conversion(args: &[String]) -> Result<Conversion, String> {
             to: codes.remove(0),
             amount: amount.unwrap_or(1.0),
         }),
-        0 | 1 => Err("expected two currencies, e.g. `currcalc usd rub 10`".to_string()),
+        0 | 1 => Err("expected two currencies, e.g. `currcalc eur usd 137.42`".to_string()),
         _ => Err("too many currencies given, expected exactly two".to_string()),
     }
 }
@@ -387,11 +386,11 @@ mod tests {
     #[test]
     fn amount_can_come_last() {
         assert_eq!(
-            parse_conversion(&args(&["usd", "rub", "10"])).unwrap(),
+            parse_conversion(&args(&["eur", "usd", "137.42"])).unwrap(),
             Conversion {
-                from: "USD".to_string(),
-                to: "RUB".to_string(),
-                amount: 10.0
+                from: "EUR".to_string(),
+                to: "USD".to_string(),
+                amount: 137.42
             }
         );
     }
@@ -399,18 +398,18 @@ mod tests {
     #[test]
     fn amount_can_come_first() {
         assert_eq!(
-            parse_conversion(&args(&["51,51", "usd", "rub"])).unwrap(),
+            parse_conversion(&args(&["42,75", "gbp", "usd"])).unwrap(),
             Conversion {
-                from: "USD".to_string(),
-                to: "RUB".to_string(),
-                amount: 51.51
+                from: "GBP".to_string(),
+                to: "USD".to_string(),
+                amount: 42.75
             }
         );
     }
 
     #[test]
     fn amount_defaults_to_one() {
-        let conversion = parse_conversion(&args(&["usd", "rub"])).unwrap();
+        let conversion = parse_conversion(&args(&["eur", "usd"])).unwrap();
         assert_eq!(conversion.amount, 1.0);
     }
 
@@ -418,11 +417,11 @@ mod tests {
     fn rejects_bad_argument_sets() {
         for bad in [
             vec![],
-            vec!["usd"],
-            vec!["usd", "rub", "10", "20"],
-            vec!["usd", "rub", "1.2.3"],
-            vec!["usd", "r"],
-            vec!["usd", "rub", "ein"],
+            vec!["eur"],
+            vec!["eur", "usd", "137.42", "42.75"],
+            vec!["eur", "usd", "1.2.3"],
+            vec!["eur", "u"],
+            vec!["eur", "usd", "ein"],
         ] {
             assert!(
                 parse_conversion(&args(&bad)).is_err(),
