@@ -18,57 +18,59 @@ The binary goes to `~/.cargo/bin`. To build without installing:
 
 ```sh
 cargo build --release
-./target/release/currcalc usd rub 10
+./target/release/currcalc --date 2023-07-14 eur usd 137.42
 ```
 
 ## Usage
 
 ```sh
-$ currcalc usd rub 10
-820.00
+$ currcalc --date 2023-07-14 eur usd 137.42
+153.81
 
-$ currcalc 10 usd rub
-820.00
+$ currcalc --date 2023-07-14 42,75 gbp usd
+55.95
 
-$ currcalc usd rub
-82.00
+$ currcalc --date 2023-07-14 eur usd
+1.12
 ```
 
 The amount defaults to 1 and can stand before or after the currency pair.
-Currency codes are case insensitive.
+Currency codes are case insensitive. The examples use the rate published on
+14 July 2023 so the numbers stay stable over time; drop `--date` for the
+latest rate.
 
 Plain output is a single number, so it drops into scripts:
 
 ```sh
-total=$(currcalc eur rub 500)
+total=$(currcalc --date 2023-07-14 chf eur 918.40)
 ```
 
 Add `--json` when you need the rate, its date and the source:
 
 ```sh
-$ currcalc --json usd rub 10
-{"amount":10.0,"date":"2026-11-22","from":"USD","rate":82.0,"result":820.0,"source":"frankfurter.dev","to":"RUB"}
+$ currcalc --json --date 2023-07-14 eur usd 137.42
+{"amount":137.42,"date":"2023-07-14","from":"EUR","rate":1.1193,"result":153.81,"source":"frankfurter.dev","to":"USD"}
 ```
 
 `result` is rounded to `--precision`, `rate` is the unrounded value returned
-by the API. Rates in these examples are from 22 November 2026.
+by the API.
 
 ## Amount formats
 
 | Input | Value |
 | --- | --- |
-| `10` | 10 |
-| `321.32` | 321.32 |
-| `51,51` | 51.51 |
-| `1 234,56` | 1234.56 |
-| `1,234.56` | 1234.56 |
-| `1.234,56` | 1234.56 |
-| `1,234,567` | 1234567 |
+| `42` | 42 |
+| `137.42` | 137.42 |
+| `18,75` | 18.75 |
+| `2 480,15` | 2480.15 |
+| `1,284.60` | 1284.6 |
+| `1.284,60` | 1284.6 |
+| `2,480,150` | 2480150 |
 
 Spaces, including non-breaking ones, are ignored. When both separators appear,
 the last one is the decimal separator and the other one groups digits. A
 separator repeated without the other always groups, and each group must hold
-three digits, so `1,2,3` is rejected instead of being read as some other
+three digits, so `12,34,56` is rejected instead of being read as some other
 number. Negative amounts are not accepted.
 
 ## Listing currencies
@@ -78,18 +80,15 @@ $ currcalc list
 AED   United Arab Emirates Dirham
 AFN   Afghan Afghani
 ...
-$ currcalc list rub
-AWG   Aruban Florin
-BYN   Belarusian Ruble
-RUB   Russian Ruble
+$ currcalc list euro
+EUR   Euro
 ```
 
-`list` filters by any substring of the code or the name, which is why `rub`
-also matches Aruban Florin. The default list holds the 161 fiat currencies the
-API covers.
-Add `--all` to include crypto and metals such as BTC and XAU; those rows gain a
-type column. `--json` prints an array of objects with `code`, `name`, `symbol`
-and `type`.
+`list` matches any part of the code or the name: `list euro` finds EUR, and
+`list dollar` finds every currency with Dollar in its name. The default list
+holds the 161 fiat currencies the API covers. Add `--all` to include crypto and
+metals such as BTC and XAU; those rows gain a type column. `--json` prints an
+array of objects with `code`, `name`, `symbol` and `type`.
 
 ## Options
 
@@ -104,8 +103,8 @@ and `type`.
 Options may be placed before or after the currencies.
 
 Historical lookups work for any date the API covers for that pair. A date
-outside the coverage returns an error. For the example pair the API answers
-`--date 2024-05-15` with 91.38.
+outside the coverage returns an error. For example,
+`--precision 5 --date 2022-09-28 eur usd` prints 0.96024.
 
 ## Cache
 
