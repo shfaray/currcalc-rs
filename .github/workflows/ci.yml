@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -38,3 +39,48 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release --locked
+      - uses: actions/upload-artifact@v7
+        with:
+          name: currcalc-linux-x86_64
+          path: target/release/currcalc
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Set the crate version from the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'; then
+            echo "tag ${GITHUB_REF_NAME} does not look like vX.Y.Z" >&2
+            exit 1
+          fi
+          sed -i -E "s/^version = \"[^\"]+\"/version = \"$version\"/" Cargo.toml
+          grep '^version = ' Cargo.toml
+
+      - name: Build with the tag version
+        run: |
+          cargo build --release
+          ./target/release/currcalc --version
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" target/release/currcalc --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" target/release/currcalc \
+              --title "currcalc $GITHUB_REF_NAME" \
+              --generate-notes
+          fi
