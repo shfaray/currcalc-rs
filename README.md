@@ -139,6 +139,9 @@ cargo test -- --ignored
 The last command hits the live API. Everything else runs offline: the CLI
 tests seed a temporary cache and pass `--offline`.
 
+The agent skill in `skills/currcalc` explains the command surface to coding
+agents and installs with `npx skills add shfaray/currcalc-rs`.
+
 ## Data source
 
 Frankfurter collects reference rates published by central banks and other
