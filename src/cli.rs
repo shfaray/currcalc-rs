@@ -390,11 +390,21 @@ fn human_age(age: Duration) -> String {
         1..=59 => format!("{minutes} min ago"),
         _ => {
             let hours = minutes / 60;
-            let rest = minutes % 60;
-            if rest == 0 {
-                format!("{hours} h ago")
+            let minutes = minutes % 60;
+            if hours < 24 {
+                return if minutes == 0 {
+                    format!("{hours} h ago")
+                } else {
+                    format!("{hours} h {minutes} min ago")
+                };
+            }
+
+            let days = hours / 24;
+            let hours = hours % 24;
+            if hours == 0 {
+                format!("{days} d ago")
             } else {
-                format!("{hours} h {rest} min ago")
+                format!("{days} d {hours} h ago")
             }
         }
     }
@@ -462,6 +472,11 @@ mod tests {
         assert_eq!(
             human_age(Duration::from_secs(3 * 3600 + 120)),
             "3 h 2 min ago"
+        );
+        assert_eq!(human_age(Duration::from_secs(24 * 3600)), "1 d ago");
+        assert_eq!(
+            human_age(Duration::from_secs(3 * 24 * 3600 + 5 * 3600)),
+            "3 d 5 h ago"
         );
     }
 }
