@@ -160,7 +160,8 @@ fn convert(cli: &Cli) -> Result<(), AppError> {
                 print_conversion(cli, conversion.amount, &entry.data)
             }
             None => Err(AppError::Runtime(format!(
-                "no cached rate for {from}/{to}; run once without --offline"
+                "no cached rate for {from}/{to}; {}",
+                offline_cache_hint(cli.no_cache)
             ))),
         };
     }
@@ -236,9 +237,10 @@ fn list(cli: &Cli, query: Option<&str>, all: bool) -> Result<(), AppError> {
                 entry.data
             }
             None => {
-                return Err(AppError::Runtime(
-                    "no cached currency list; run once without --offline".to_string(),
-                ));
+                return Err(AppError::Runtime(format!(
+                    "no cached currency list; {}",
+                    offline_cache_hint(cli.no_cache)
+                )));
             }
         }
     } else {
@@ -360,6 +362,16 @@ fn open_cache() -> Option<Cache> {
             eprintln!("warning: {err}; continuing without cache");
             None
         }
+    }
+}
+
+/// Telling the user to drop `--offline` is unhelpful when `--no-cache` is
+/// the flag that emptied the cache in the first place.
+fn offline_cache_hint(no_cache: bool) -> &'static str {
+    if no_cache {
+        "--no-cache prevents reading cached data; drop one of the two flags"
+    } else {
+        "run once without --offline"
     }
 }
 

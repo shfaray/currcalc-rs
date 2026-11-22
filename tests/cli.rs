@@ -288,7 +288,8 @@ fn no_cache_ignores_existing_entries() {
         .assert()
         .failure()
         .code(1)
-        .stderr(predicate::str::contains("no cached rate"));
+        .stderr(predicate::str::contains("no cached rate"))
+        .stderr(predicate::str::contains("--no-cache prevents reading"));
 }
 
 #[test]
