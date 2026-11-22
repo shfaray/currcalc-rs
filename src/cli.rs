@@ -79,14 +79,17 @@ struct Conversion {
 
 #[derive(Debug)]
 enum AppError {
-    Input(String),
+    /// The invocation itself is wrong; nothing was looked up or fetched.
+    Usage(String),
+    /// The invocation is fine but it cannot be completed.
+    Runtime(String),
     Api(ApiError),
 }
 
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AppError::Input(message) => write!(f, "{message}"),
+            AppError::Usage(message) | AppError::Runtime(message) => write!(f, "{message}"),
             AppError::Api(err) => write!(f, "{err}"),
         }
     }
@@ -113,15 +116,19 @@ pub fn main() -> ExitCode {
             if let AppError::Api(ApiError::UnknownCurrency(code)) = &err {
                 eprintln!("hint: run `currcalc list {code}` to find the right code");
             }
-            ExitCode::from(1)
+            let code = match err {
+                AppError::Usage(_) => 2,
+                AppError::Runtime(_) | AppError::Api(_) => 1,
+            };
+            ExitCode::from(code)
         }
     }
 }
 
 fn convert(cli: &Cli) -> Result<(), AppError> {
-    let conversion = parse_conversion(&cli.args).map_err(AppError::Input)?;
+    let conversion = parse_conversion(&cli.args).map_err(AppError::Usage)?;
     if let Some(date) = cli.date.as_deref() {
-        api::validate_date(date).map_err(AppError::Input)?;
+        api::validate_date(date).map_err(AppError::Usage)?;
     }
 
     let cache = open_cache();
@@ -152,7 +159,7 @@ fn convert(cli: &Cli) -> Result<(), AppError> {
                 warn_stale("offline mode", &entry);
                 print_conversion(cli, conversion.amount, &entry.data)
             }
-            None => Err(AppError::Input(format!(
+            None => Err(AppError::Runtime(format!(
                 "no cached rate for {from}/{to}; run once without --offline"
             ))),
         };
@@ -180,7 +187,7 @@ fn convert(cli: &Cli) -> Result<(), AppError> {
 fn print_conversion(cli: &Cli, amount: f64, rate: &Rate) -> Result<(), AppError> {
     let result = amount * rate.rate;
     if !result.is_finite() {
-        return Err(AppError::Input("amount is too large".to_string()));
+        return Err(AppError::Usage("amount is too large".to_string()));
     }
     let precision = cli.precision as usize;
 
@@ -223,7 +230,7 @@ fn list(cli: &Cli, query: Option<&str>, all: bool) -> Result<(), AppError> {
                 entry.data
             }
             None => {
-                return Err(AppError::Input(
+                return Err(AppError::Runtime(
                     "no cached currency list; run once without --offline".to_string(),
                 ));
             }
@@ -270,7 +277,7 @@ fn list(cli: &Cli, query: Option<&str>, all: bool) -> Result<(), AppError> {
             Some(query) => format!("no currencies match '{query}'"),
             None => "no currencies available".to_string(),
         };
-        return Err(AppError::Input(message));
+        return Err(AppError::Runtime(message));
     }
 
     if cli.json {

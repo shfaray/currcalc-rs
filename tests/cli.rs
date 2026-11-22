@@ -374,8 +374,26 @@ fn missing_currency_is_a_usage_error() {
         .args(["eur"])
         .assert()
         .failure()
-        .code(1)
+        .code(2)
         .stderr(predicate::str::contains("expected two currencies"));
+}
+
+#[test]
+fn malformed_invocations_exit_with_two() {
+    for args in [
+        vec!["eur", "usd", "1.2.3"],
+        vec!["eur", "u"],
+        vec!["eur", "usd", "137.42", "42.75"],
+        vec!["--date", "2024-02-30", "eur", "usd"],
+        vec!["--date", "15.05.2024", "eur", "usd"],
+    ] {
+        Fixture::new()
+            .offline()
+            .args(&args)
+            .assert()
+            .failure()
+            .code(2);
+    }
 }
 
 #[test]

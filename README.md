@@ -122,8 +122,8 @@ is cached. `--no-cache` ignores existing entries, so combining it with
 | Code | Meaning |
 | --- | --- |
 | 0 | Success |
-| 1 | Conversion error, such as an unknown currency or no network and no cache |
-| 2 | Bad arguments, or no arguments at all (help is printed) |
+| 1 | The call was valid but failed: unknown currency, no network and no cache, no currencies match the filter |
+| 2 | Bad arguments: wrong number of currencies, an invalid code, amount, date or option; help is printed when no arguments are given |
 
 The result goes to stdout and errors go to stderr.
 
