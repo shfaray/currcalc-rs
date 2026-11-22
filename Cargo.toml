@@ -2,8 +2,13 @@
 name = "currcalc"
 version = "0.2.0"
 edition = "2024"
+rust-version = "1.88"
 description = "Fast CLI currency converter backed by frankfurter.dev"
 license = "MIT"
+repository = "https://github.com/shfaray/currcalc-rs"
+readme = "README.md"
+keywords = ["cli", "currency", "exchange-rate", "finance"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

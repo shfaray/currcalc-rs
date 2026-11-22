@@ -8,7 +8,7 @@ file.
 
 ## Install
 
-Requires Rust 1.85 or newer (edition 2024).
+Requires Rust 1.88 or newer (edition 2024).
 
 ```sh
 cargo install --path .

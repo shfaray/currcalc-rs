@@ -8,7 +8,7 @@
 
 ## Установка
 
-Нужен Rust 1.85 или новее (edition 2024).
+Нужен Rust 1.88 или новее (edition 2024).
 
 ```sh
 cargo install --path .
