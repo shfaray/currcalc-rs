@@ -55,15 +55,17 @@ take the unrounded `rate` from `--json` and multiply once in the calling code.
 `--json` carries the provenance:
 
 ```json
-{"amount":137.42,"date":"2025-02-11","from":"EUR","rate":1.0872,"result":149.40,"source":"frankfurter.dev","to":"USD"}
+{"amount":137.42,"date":"2025-02-11","from":"EUR","rate":1.0872,"result":149.4,"source":"frankfurter.dev","to":"USD"}
 ```
 
 Read fields by name; key order is not part of the contract. `result` is
-rounded, `rate` is not.
+rounded, `rate` is not. `result` is a JSON number, so it never carries
+trailing zeros: `149.4`, not `149.40`.
 
 Warnings and errors go to stderr, so `$(currcalc …)` stays clean. Exit code 0
-means success, 1 a failed conversion, 2 bad arguments. Check the exit status
-instead of parsing stderr.
+means success, 1 a call that could not be completed (unknown currency, no
+network and no cache), 2 bad arguments. Check the exit status instead of
+parsing stderr.
 
 ## Reporting a conversion
 
@@ -104,9 +106,9 @@ conversion and report it, rather than substituting a remembered rate.
 
 ## Amounts
 
-Plain numbers work: `42`, `137.42`, `18,75`. Grouping spaces are ignored.
-Strip currency symbols, units and parentheses before the call; currcalc takes
-digits and separators only. Negative amounts are rejected.
+Plain numbers work: `42`, `137.42`, `18,75`. Grouping spaces and underscores
+are ignored. Strip currency symbols, units and parentheses before the call;
+currcalc takes digits and separators only. Negative amounts are rejected.
 
 Quote values that contain spaces or commas:
 

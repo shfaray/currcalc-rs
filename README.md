@@ -48,11 +48,12 @@ Add `--json` when you need the rate, its date and the source:
 
 ```sh
 $ currcalc --json eur usd 137.42
-{"amount":137.42,"date":"2025-02-11","from":"EUR","rate":1.0872,"result":149.40,"source":"frankfurter.dev","to":"USD"}
+{"amount":137.42,"date":"2025-02-11","from":"EUR","rate":1.0872,"result":149.4,"source":"frankfurter.dev","to":"USD"}
 ```
 
 `result` is rounded to `--precision`, `rate` is the unrounded value returned
-by the API.
+by the API. `result` is a JSON number, so trailing zeros are dropped: the
+value is `149.4`, not `149.40`.
 
 ## Amount formats
 
@@ -65,8 +66,10 @@ by the API.
 | `1,284.60` | 1284.6 |
 | `1.284,60` | 1284.6 |
 | `2,480,150` | 2480150 |
+| `1_000` | 1000 |
 
-Spaces, including non-breaking ones, are ignored. When both separators appear,
+Spaces, including non-breaking ones, and underscores are ignored. When both
+separators appear,
 the last one is the decimal separator and the other one groups digits. A
 separator repeated without the other always groups, and each group must hold
 three digits, so `12,34,56` is rejected instead of being read as some other
