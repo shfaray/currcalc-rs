@@ -69,11 +69,10 @@ value is `149.4`, not `149.40`.
 | `1_000` | 1000 |
 
 Spaces, including non-breaking ones, and underscores are ignored. When both
-separators appear,
-the last one is the decimal separator and the other one groups digits. A
-separator repeated without the other always groups, and each group must hold
-three digits, so `12,34,56` is rejected instead of being read as some other
-number. Negative amounts are not accepted.
+separators appear, the last one is the decimal separator and the other one
+groups digits. A separator repeated without the other always groups, and each
+group must hold three digits, so `12,34,56` is rejected instead of being read
+as some other number. Negative amounts are not accepted.
 
 ## Listing currencies
 

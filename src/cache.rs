@@ -19,6 +19,8 @@ pub const RATE_TTL: Duration = Duration::from_secs(60 * 60);
 pub const CURRENCIES_TTL: Duration = Duration::from_secs(7 * 24 * 60 * 60);
 /// Tolerance for a system clock that steps a little between write and read.
 const CLOCK_SKEW: u64 = 60;
+/// Temp files younger than this may belong to a write still in flight.
+const TEMP_FILE_TTL: Duration = Duration::from_secs(60 * 60);
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Entry<T> {
@@ -126,6 +128,7 @@ impl Cache {
 
     fn write(&self, name: &str, data: impl Serialize) -> Result<(), CacheError> {
         fs::create_dir_all(&self.dir)?;
+        self.remove_stale_temp_files();
 
         let entry = Entry {
             fetched_at: now_secs(),
@@ -156,6 +159,31 @@ impl Cache {
             return Err(err.into());
         }
         Ok(())
+    }
+
+    /// A killed run leaves its temp file behind. Remove the old ones, but
+    /// never touch a file that a concurrent write may still be filling.
+    fn remove_stale_temp_files(&self) {
+        let Ok(entries) = fs::read_dir(&self.dir) else {
+            return;
+        };
+        let now = SystemTime::now();
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|ext| ext.to_str()) != Some("tmp") {
+                continue;
+            }
+            let Ok(modified) = entry.metadata().and_then(|meta| meta.modified()) else {
+                continue;
+            };
+            let stale = now
+                .duration_since(modified)
+                .is_ok_and(|age| age > TEMP_FILE_TTL);
+            if stale {
+                let _ = fs::remove_file(&path);
+            }
+        }
     }
 }
 
@@ -346,6 +374,28 @@ mod tests {
             .path()
             .join(format!("rate_eur_usd.json.{}.tmp", std::process::id()));
         fs::write(&leftover, b"stale half written entry").unwrap();
+
+        cache
+            .store_rate("EUR", "USD", None, &sample_rate())
+            .unwrap();
+
+        assert!(!leftover.exists());
+        assert_eq!(cache.rate("EUR", "USD", None).unwrap().data, sample_rate());
+    }
+
+    #[test]
+    fn removes_temp_files_left_by_a_killed_run() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = Cache::at(dir.path());
+        let leftover = dir.path().join("rate_eur_usd.json.999.tmp");
+        fs::write(&leftover, b"partial").unwrap();
+        let old = SystemTime::now() - Duration::from_secs(2 * 60 * 60);
+        fs::File::options()
+            .write(true)
+            .open(&leftover)
+            .unwrap()
+            .set_modified(old)
+            .unwrap();
 
         cache
             .store_rate("EUR", "USD", None, &sample_rate())
