@@ -169,6 +169,9 @@ fn rate_file(from: &str, to: &str, date: Option<&str>) -> String {
 }
 
 /// Keep user input from turning into a path outside the cache directory.
+///
+/// Callers only pass validated currency codes and dates, so two different
+/// requests cannot collapse into one file name.
 fn sanitize(value: &str) -> String {
     value
         .chars()
